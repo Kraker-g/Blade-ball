@@ -1,0 +1,629 @@
+
+------------------------------------------------------<SILENT AIM>-------------------------------------------------------
+------------------------------------------------------<SILENT AIM>-------------------------------------------------------
+local function EnableAutoJump()
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+        while autoJumpEnabled do
+            if humanoid.Health > 0 then
+                humanoid.Jump = true
+            end
+            wait(0.1)
+        end
+    end
+end
+
+local function DisableAutoJump()
+    autoJumpEnabled = false
+end
+
+
+------------------------------------------------------<SILENT AIM>-------------------------------------------------------
+------------------------------------------------------<SILENT AIM>-------------------------------------------------------
+-- Functions for Aimlock
+local function GetClosestPlayerToCursor()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character then
+            local otherCharacter = otherPlayer.Character
+            local screenPosition = camera:WorldToScreenPoint(otherCharacter.HumanoidRootPart.Position)
+            local cursorDistance = (Vector2.new(screenPosition.X, screenPosition.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+            if cursorDistance < shortestDistance then
+                closestPlayer = otherPlayer
+                shortestDistance = cursorDistance
+            end
+        end
+    end
+    return closestPlayer
+end
+
+local function AimAtPlayer()
+    if aimlockEnabled and targetPlayer and targetPlayer.Character then
+        local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
+        local direction = (targetPosition - camera.CFrame.p).unit
+        camera.CFrame = camera.CFrame:Lerp(CFrame.lookAt(camera.CFrame.p, targetPosition), aimStrength)
+    end
+end
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    if aimlockEnabled then
+        targetPlayer = GetClosestPlayerToCursor()
+        AimAtPlayer()
+    end
+end)
+
+------------------------------------------------------<AIM LOCK>-------------------------------------------------------
+------------------------------------------------------<AIM LOCK>-------------------------------------------------------
+local CameraLockEnabled = false
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+
+local function GetClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestPlayer = player
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+
+local function LockCameraToPlayer()
+    if not CameraLockEnabled then return end
+
+    local closestPlayer = GetClosestPlayer()
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
+    end
+end
+
+------------------------------------------------------<CHAMS PLAYER>-------------------------------------------------------
+------------------------------------------------------<CHAMS PLAYER>-------------------------------------------------------
+local Chams_Color = Color3.fromRGB(255, 0, 0)  -- Warna Merah
+local ESP_Enabled = false  -- Status ESP awal
+
+
+local function ApplyChams(player)
+    if player.Character then
+        for _, part in pairs(player.Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                -- Buat salinan "Highlight" untuk menyoroti pemain
+                local highlight = Instance.new("BoxHandleAdornment")
+                highlight.Adornee = part
+                highlight.AlwaysOnTop = true
+                highlight.ZIndex = 10
+                highlight.Size = part.Size + Vector3.new(0.1, 0.1, 0.1)  -- Sedikit lebih besar dari bagian
+                highlight.Color3 = Chams_Color
+                highlight.Transparency = 0.7  -- Transparansi highlight
+                highlight.Parent = part
+            end
+        end
+    end
+end
+
+
+local function RemoveChams(player)
+    if player.Character then
+        for _, part in pairs(player.Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                for _, adornment in pairs(part:GetChildren()) do
+                    if adornment:IsA("BoxHandleAdornment") then
+                        adornment:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+local function UpdateAllPlayers()
+    for _, player in pairs(Players:GetPlayers()) do
+        if ESP_Enabled then
+            ApplyChams(player) 
+        else
+            RemoveChams(player)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        if ESP_Enabled then
+            ApplyChams(player)
+        end
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    RemoveChams(player)
+end)
+
+
+------------------------------------------------------<NO CLIP>-------------------------------------------------------
+------------------------------------------------------<NO CLIP>-------------------------------------------------------
+local no_clip = false
+
+
+local function ToggleNoClip(state)
+    local character = Players.LocalPlayer.Character
+    if character then
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not state  -- Jika state true, CanCollide jadi false
+            end
+        end
+    end
+end
+
+
+game:GetService("RunService").Stepped:Connect(function()
+    if no_clip then
+        ToggleNoClip(true)
+    end
+end)
+
+------------------------------------------------------<HEALT BAR>-------------------------------------------------------
+------------------------------------------------------<HEALT BAR>-------------------------------------------------------
+
+local health_bar_esp = false
+
+
+local function AddHealthBarESP(player)
+    if player.Character and player ~= Players.LocalPlayer then
+        local character = player.Character
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+        if humanoid then
+            
+            local billboardGui = Instance.new("BillboardGui")
+            billboardGui.Size = UDim2.new(2, 0, 0.3, 0)
+            billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+            billboardGui.AlwaysOnTop = true
+            billboardGui.Name = "HealthBarESP"  -- Nama untuk referensi nanti
+
+            
+            local backgroundBar = Instance.new("Frame", billboardGui)
+            backgroundBar.Size = UDim2.new(1, 0, 1, 0)
+            backgroundBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            backgroundBar.BorderSizePixel = 0
+
+            
+            local healthBar = Instance.new("Frame", backgroundBar)
+            healthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
+            healthBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Warna merah untuk health bar
+            healthBar.BorderSizePixel = 0
+
+            billboardGui.Parent = character:FindFirstChild("Head") or character.PrimaryPart
+
+            
+            humanoid.HealthChanged:Connect(function()
+                healthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
+            end)
+        end
+    end
+end
+
+
+local function RemoveHealthBarESP(player)
+    if player.Character then
+        local healthBarGui = player.Character:FindFirstChild("Head"):FindFirstChild("HealthBarESP")
+        if healthBarGui then
+            healthBarGui:Destroy()
+        end
+    end
+end
+
+
+local function UpdateHealthBarESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            if health_bar_esp then
+                AddHealthBarESP(player)
+            else
+                RemoveHealthBarESP(player)
+            end
+        end
+    end
+end
+
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        if health_bar_esp then
+            AddHealthBarESP(player)
+        end
+    end)
+end)
+
+------------------------------------------------------<INFINITE JUMP>-------------------------------------------------------
+------------------------------------------------------<INFINITE JUMP>-------------------------------------------------------
+---
+local UserInputService = game:GetService("UserInputService");
+local local_player = Players.LocalPlayer
+local infinite_jump = false -- Status awal untuk Infinite Jump
+
+-- Fungsi untuk mengaktifkan atau menonaktifkan Infinite Jump
+local function toggleInfiniteJump(state)
+    infinite_jump = state
+    
+    if infinite_jump then
+        -- Jika diaktifkan, tambahkan listener untuk mendeteksi lompat
+        UserInputService.JumpRequest:Connect(function()
+            if local_player.Character and local_player.Character:FindFirstChild("Humanoid") then
+                local humanoid = local_player.Character.Humanoid
+                if humanoid:GetState() == Enum.HumanoidStateType.Freefall or humanoid:GetState() == Enum.HumanoidStateType.Jumping then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end
+        end)
+    end
+end
+
+print("Load Script🔃")
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------------------<LIBRARY UI>-------------------------------------------------------
+------------------------------------------------------<LIBRARY UI>-------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--// Services
+local UserInputService = game:GetService("UserInputService");
+
+--// Library
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/lxte/lates-lib/main/Main.lua"))()
+local Window = Library:CreateWindow({
+	Title = "Star X ",
+	Theme = "Dark",
+	
+	Size = UDim2.fromOffset(500, 300),
+	Transparency = 0.2,
+	Blurring = true,
+	MinimizeKeybind = Enum.KeyCode.LeftAlt,
+})
+
+local Themes = {
+	Light = {
+		--// Frames:
+		Primary = Color3.fromRGB(232, 232, 232),
+		Secondary = Color3.fromRGB(255, 255, 255),
+		Component = Color3.fromRGB(245, 245, 245),
+		Interactables = Color3.fromRGB(235, 235, 235),
+
+		--// Text:
+		Tab = Color3.fromRGB(50, 50, 50),
+		Title = Color3.fromRGB(0, 0, 0),
+		Description = Color3.fromRGB(100, 100, 100),
+
+		--// Outlines:
+		Shadow = Color3.fromRGB(255, 255, 255),
+		Outline = Color3.fromRGB(210, 210, 210),
+
+		--// Image:
+		Icon = Color3.fromRGB(100, 100, 100),
+	},
+	
+	Dark = {
+		--// Frames:
+		Primary = Color3.fromRGB(30, 30, 30),
+		Secondary = Color3.fromRGB(35, 35, 35),
+		Component = Color3.fromRGB(40, 40, 40),
+		Interactables = Color3.fromRGB(45, 45, 45),
+
+		--// Text:
+		Tab = Color3.fromRGB(200, 200, 200),
+		Title = Color3.fromRGB(240,240,240),
+		Description = Color3.fromRGB(200,200,200),
+
+		--// Outlines:
+		Shadow = Color3.fromRGB(0, 0, 0),
+		Outline = Color3.fromRGB(40, 40, 40),
+
+		--// Image:
+		Icon = Color3.fromRGB(220, 220, 220),
+	},
+	
+	Void = {
+		--// Frames:
+		Primary = Color3.fromRGB(15, 15, 15),
+		Secondary = Color3.fromRGB(20, 20, 20),
+		Component = Color3.fromRGB(25, 25, 25),
+		Interactables = Color3.fromRGB(30, 30, 30),
+
+		--// Text:
+		Tab = Color3.fromRGB(200, 200, 200),
+		Title = Color3.fromRGB(240,240,240),
+		Description = Color3.fromRGB(200,200,200),
+
+		--// Outlines:
+		Shadow = Color3.fromRGB(0, 0, 0),
+		Outline = Color3.fromRGB(40, 40, 40),
+
+		--// Image:
+		Icon = Color3.fromRGB(220, 220, 220),
+	},
+
+}
+
+--// Set the default theme
+Window:SetTheme(Themes.Dark)
+
+--// Sections
+Window:AddTabSection({
+	Name = "Main",
+	Order = 1,
+})
+
+--// Tab [MAIN]
+
+local Info = Window:AddTab({
+	Title = "Info",
+	Section = "Star X",
+	Icon = "rbxassetid://11963373994"
+})
+
+Window:AddSection({ Name = "Information", Tab = AAA }) 
+
+
+Window:AddParagraph({
+	Title = "Star X",
+	Description = "A Best Roblox Scripts",
+	Tab = Info
+})
+				
+	Window:AddParagraph({
+	Title = "Owner",
+	Description = "CodeE4X",
+	Tab = Info
+})	
+
+Window:AddButton({
+	Title = "Copy Discord Link!(clik to copy)",
+	Description = "https://discord.gg/EwARkGncq4",
+	Tab = Info,
+	Callback = function()
+		setclipboard("https://discord.gg/EwARkGncq4")
+	end,
+}) 
+
+
+
+
+local Main = Window:AddTab({
+	Title = "Main",
+	Section = "Main",
+	Icon = "rbxassetid://11963373994"
+})
+
+-- AIMLOCK
+Window:AddToggle({
+    Title = "Camera Lock",
+    Description = "Lock camera to closest player",
+    Tab = Main,
+    Callback = function(state)
+        CameraLockEnabled = state
+    end,
+})
+
+-- Hubungkan fungsi LockCameraToPlayer ke RenderStepped
+RunService.RenderStepped:Connect(LockCameraToPlayer)
+
+Window:AddToggle({
+    Title = "Silent AIM",
+    Description = "ERROR WHEN MOVING BUT WORKS WHEN AIMING",
+    Tab = Main,
+    Callback = function(state)
+        aimlockEnabled = state
+    end,
+})
+
+
+Window:AddToggle({
+    Title = "Bhop",
+    Description = "Auto Jump",
+    Tab = Main,
+    Callback = function(state)
+        autoJumpEnabled = state
+        if autoJumpEnabled then
+            EnableAutoJump()
+        else
+            DisableAutoJump()
+        end
+    end,
+})
+
+
+-- Callback toggle untuk mengaktifkan atau menonaktifkan ESP
+Window:AddToggle({
+    Title = "ESP",
+    Description = "Highlight All Player",
+    Tab = Main,
+    Callback = function(state)
+        ESP_Enabled = state
+        UpdateAllPlayers()
+    end,
+})
+
+
+
+-- Toggle UI untuk mengaktifkan atau menonaktifkan Health Bar ESP
+Window:AddToggle({
+    Title = "Health Bar ESP",
+    Description = "Enable Health Bar ESP for other players",
+    Tab = Main,
+    Callback = function(state)
+        health_bar_esp = state
+        UpdateHealthBarESP()
+    end,
+})
+
+local Player = Window:AddTab({
+	Title = "Player",
+	Section = "Star X",
+	Icon = "rbxassetid://11963373994"
+})
+
+-- Toggle UI untuk mengaktifkan atau menonaktifkan Infinite Jump
+Window:AddToggle({
+    Title = "Infinite Jump",
+    Description = "Enable to jump infinitely",
+    Tab = Player,
+    Callback = function(state)
+        toggleInfiniteJump(state)  -- Mengaktifkan atau menonaktifkan fitur
+    end,
+})
+
+-- Pastikan untuk mematikan Infinite Jump saat pemain mati
+local_player.CharacterAdded:Connect(function(character)
+    -- Jika karakter baru ditambahkan, matikan Infinite Jump
+    infinite_jump = false
+end)
+
+Window:AddSlider({
+    Title = "WalkSpeed",
+    Description = "Set the WalkSpeed of your character (default: 16)",
+    Tab = Player,  -- Gantilah dengan nama tab yang sesuai
+    AllowDecimals = false,  -- WalkSpeed biasanya berupa integer
+    MaxValue = 100,  -- Atur batas maksimum sesuai kebutuhan
+    MinValue = 0,    -- Atur batas minimum
+    DefaultValue = 16,  -- Nilai default WalkSpeed
+    Callback = function(Amount) 
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+        
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        
+        if humanoid then
+            humanoid.WalkSpeed = Amount  -- Set WalkSpeed sesuai dengan nilai slider
+        end
+
+        -- Simpan pengaturan WalkSpeed jika perlu
+        Window:SetSetting("WalkSpeed", Amount)
+    end,
+})
+
+-- Toggle UI untuk No Clip
+Window:AddToggle({
+    Title = "No Clip",
+    Description = "Enable No Clip to pass through walls",
+    Tab = Player,
+    Callback = function(state)
+        no_clip = state
+        ToggleNoClip(state)  -- Atur ulang No Clip saat toggle diaktifkan atau dimatikan
+    end,
+})
+
+
+--// Tab [SETTINGS]
+local Keybind = nil
+local Settings = Window:AddTab({
+	Title = "Settings",
+	Section = "Settings",
+	Icon = "rbxassetid://11293977610",
+})
+
+Window:AddKeybind({
+	Title = "Minimize Keybind",
+	Description = "Set the keybind for Minimizing(Recommed To Use)",
+	Tab = Settings,
+	Callback = function(Key) 
+		Window:SetSetting("Keybind", Key)
+	end,
+}) 
+
+Window:AddDropdown({
+	Title = "Set Theme",
+	Description = "Set the theme of the library!",
+	Tab = Settings,
+	Options = {
+		["Light Mode"] = "Light",
+		["Dark Mode"] = "Dark",
+		["Extra Dark"] = "Void",
+	},
+	Callback = function(Theme) 
+		Window:SetTheme(Themes[Theme])
+	end,
+}) 
+
+Window:AddSlider({
+	Title = "UI Transparency",
+	Description = "Set the transparency of the UI(0.15 recommend)",
+	Tab = Settings,
+	AllowDecimals = true,
+	MaxValue = 1,
+	Callback = function(Amount) 
+		Window:SetSetting("Transparency", Amount)
+	end,
+}) 
+
+Window:Notify({
+	Title = "Please Join Star X Server: https://discord.com/invite/EwARkGncq4",
+	Description = "Join Or DIE👿", 
+	Duration = 10
+})
+
+-- Start the check in a new thread
+spawn(checkSpamming)
+local ScreenGui = Instance.new("ScreenGui")
+local ImageButton = Instance.new("ImageButton")
+local UICorner = Instance.new("UICorner")
+
+-- Configure the ScreenGui
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Configure the ImageButton
+ImageButton.Parent = ScreenGui
+ImageButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ImageButton.BorderSizePixel = 0
+ImageButton.Position = UDim2.new(0.120833337, 0, 0.0952890813, 0)
+ImageButton.Size = UDim2.new(0, 50, 0, 50)
+ImageButton.Image = "rbxassetid://5430597569" -- Set the image using the decal ID
+ImageButton.Draggable = true
+
+-- Add UICorner for rounded corners
+UICorner.Parent = ImageButton
+
+-- Function to handle click event
+ImageButton.MouseButton1Click:Connect(function()
+    game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.P, false, game)
+end)
+
+print("Succes To Load!")
